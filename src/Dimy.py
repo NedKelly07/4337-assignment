@@ -17,6 +17,7 @@ k = 3
 n = 5
 
 address = ('<broadcast>', 8500)
+server_address = ('localhost', 55000)
 last_ephid_time = time.time()
 shares = []
 received_shares = defaultdict(list)
