@@ -31,7 +31,7 @@ EPHID_TIMER = 15
 DBF_TIMER = 90
 QBF_TIMER = 540
 
-dbf = BloomFilter() # great initial dbf
+dbf = BloomFilter() # initial dbf
 dbf_list = []
 
 # TASK 1 
@@ -127,7 +127,7 @@ def verify_and_reconstruct_shares(shares, original_ephid_hash):
             print("[TASK 5]: Derived Encounter ID (EncID):", EncID.hex())
             del received_shares[original_ephid_hash]
             print("\n[TASK 6] Adding EncID to DBF")
-            dbf.add(EncID.decode('utf-8')) # decoding to string is better than using str()
+            dbf.add(EncID) # decoding to string is better than using str()
             
         else:
             print("Failed to verify the reconstructed EphID.")
