@@ -196,7 +196,9 @@ def wait_for_covid():
                 send_cbf(cbf)
                 break
 
-
+# thread function to receive all server messages, interpret and display 
+def server_receiver():
+    print()
 
 def send_qbf(qbf):
     print
