@@ -172,21 +172,49 @@ def qbf_cycle():
 
     qbf = combine_DBFS(dbf_list)
     print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
+    print("[Task 10-a] Uploading QBF to server")
+    send_qbf(qbf)
 
-    #!!!Need code here to send QBF to server (maybe have entire thread to itself for server respones)!!!#
+# Task 9: Wait for a user nput to indictate node has COVID-19, once indicated,
+# combine all DBFs into a CBF and upload to server, once uploaded stop sending QBFs
+def wait_for_covid():
+    global dbf_list
+    # create qbf cycle timer in here so that once positive can cancel timer and stop sending QBFs
+    qbf_cycle_timer = threading.Timer(QBF_TIMER, qbf_cycle)
+    qbf_cycle_timer.daemon = True
+    qbf_cycle_timer.start()
 
+    while True:
+        user_input = input("Enter 'p' or 'P' to test positive to COVID-19------")
+        if user_input.lower() == 'p':
+            user_input = input("[Task 9] Tested positive for COVID-19, do you want to send your CBF?\nEnter Y or 'y' for yes or any other letter otherwise:")
+            if user_input.lower == 'Y':
+                qbf_cycle_timer.cancel()
+                cbf = combine_DBFS(dbf_list)
+                print(f"Combining all DBFs into one CBF (# of '1' bits: {cbf.get_num_true()})")
+                print("Uploading CBF to server and no more sending QBFs")
+                send_cbf(cbf)
+                break
+
+
+
+def send_qbf(qbf):
+    print
+
+def send_cbf(cbf):
+    print
         
 def start():
     threading.Thread(name="UDPBroadcaster", target=udp_broadcaster).start()
     threading.Thread(name="UDPReceiver", target=udp_receiver).start()
-
     dbf_cycle_timer = threading.Timer(DBF_TIMER, dbf_cycle)
-    qbf_cycle_timer = threading.Timer(QBF_TIMER, qbf_cycle)
+    covid_thread  = threading.Thread(name="waitForCovid", target=wait_for_covid)
+
     dbf_cycle_timer.daemon = True
-    qbf_cycle_timer.daemon = True
+    covid_thread.daemon = True
     dbf_cycle_timer.start()
-    time.sleep(0.05) # just want to ensure dbf_cycle_timer starts first and after 6 cycles 
-    qbf_cycle_timer.start()
+    time.sleep(0.05) # just want to ensure dbf_cycle_timer starts before qbf_cycle_timer (which is in covid_thread)
+    covid_thread.start()
 
 if __name__ == "__main__":
     start()
