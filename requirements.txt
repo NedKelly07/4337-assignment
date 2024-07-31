@@ -1,6 +1,9 @@
 bitarray==2.9.2
+cffi==1.15.1
+cryptography==43.0.0
 ecdsa==0.19.0
 GF256==0.2.0
 mmh3==4.1.0
+pycparser==2.21
 six==1.16.0
 subrosa==0.1.0
