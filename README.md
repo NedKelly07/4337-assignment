@@ -12,3 +12,5 @@ pip install -r requirements.txt
 
 >whenever you pip install a new package in the venv, do ```pip freeze > requirements.txt```
 >whenever you need to install the new packages someone else has added, do ```pip install -r requirements.txt```
+
+>to leave the venv do ```deactivate```
