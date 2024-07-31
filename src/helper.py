@@ -133,3 +133,24 @@ def receive_msg(socket, chunk_size=CHUNK_SIZE):
     data_bits.frombytes(data_bytes)
     # done
     return header, data_bits
+
+def send_qbf(socket, qbf):
+    send_bf(socket, HEAD_QBF, qbf)
+    header, data = receive_msg(socket)
+    if header == HEAD_SUCCESS:
+        # positive contact
+        return True
+    if header == HEAD_FAIL:
+        # no contact
+        return False
+    else:
+        edebug(f'[send_qbf] unexpected response, header: [{header}]')
+        raise Exception('[send_qbf] shit the bed')
+
+def send_cbf(socket, cbf):
+    send_bf(socket, HEAD_CBF, cbf)
+    header, data = receive_msg(socket)
+    if header == HEAD_SUCCESS:
+        print('...done')
+    else:
+        edebug(f'[wait_for_input] failed to send CBF to server')

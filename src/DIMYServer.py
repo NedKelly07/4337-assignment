@@ -55,15 +55,18 @@ def client_handler(socket, client_addr):
         
         if header == HEAD_DISCONNECT:
             print(f'client [{client_addr}] dissconnect.')
+            print(f'associated client_handler exiting...')
             send_msg(socket, HEAD_SUCCESS)
-            break
+            socket.close()
+            exit()
 
         if header == HEAD_INFO:
             print(f'client [{client_addr}] request info.')
             info = f"""
             server address: [{address}]\n
             connected with client: [{client_addr}]\n
-            server debug mode: [{debug}]
+            server debug mode: [{debug}]\n
+            CBF's stored: [{len(cbf_list)}]
             """
             print(info)
 
@@ -73,7 +76,8 @@ def client_handler(socket, client_addr):
             server address: [{address}]\n
             connected with client: [{client_addr}]\n
             server debug mode: [{debug}]\n
-            cbf list:\n
+            CBF's stored: [{len(cbf_list)}]\n
+            CBF list:\n
             """
             for cbf in cbf_list:
                 info = info + '[' + cbf + ']' + f'\n'
@@ -82,7 +86,8 @@ def client_handler(socket, client_addr):
 
         else:
             send_msg(socket, HEAD_FAIL) # bad data
-            edebug(f'malformed packet (??)\ngot unrecognised header: [{header}]')
+            edebug(f'malformed packet (??)\ngot unrecognised header: [{header}]... EXPECT UNDEFINED BEHAVIOR FROM HERE')
+            # could be due to issues with BF transfer, or buffer not flushing properly...
     
     exit()
 

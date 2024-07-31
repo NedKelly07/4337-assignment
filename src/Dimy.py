@@ -10,7 +10,7 @@ from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization, hashes 
 from subrosa import split_secret, recover_secret, Share
-from helper import combine_DBFS
+from helper import *
 
 
 k = 3
@@ -23,6 +23,9 @@ server_address = ('localhost', 55000)
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcp_socket.connect(server_address)
 print(f"""connecting to server on {server_address}""")
+tcp_lock = threading.Lock()
+
+stop_event = threading.Event()
 
 last_ephid_time = time.time()
 shares = []
@@ -71,7 +74,7 @@ def udp_broadcaster():
     global last_ephid_time, shares, ephid, ephid_hash, share_index, own_ephid_hashes, private_key
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM, socket.IPPROTO_UDP) # UDP socket
     sock.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1) #enable broadcasting
-    while True:
+    while not stop_event.is_set():
         current_time = time.time()
         if current_time - last_ephid_time >= EPHID_TIMER or not shares:
             private_key, ephid = generate_ephid()
@@ -96,7 +99,7 @@ def udp_receiver():
     server = socket.socket(socket.AF_INET, socket.SOCK_DGRAM) 
     server.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEPORT, 1)
     server.bind(('', 8500))
-    while True:
+    while not stop_event.is_set():
         data, _ = server.recvfrom(2048)
         try:
             message = data.decode('utf-8')
@@ -160,9 +163,12 @@ def dbf_cycle():
     print("Creating new DBF")
     dbf.reset() # setting all bits to 0 essentially makes a new dbf
 
+    if stop_event.is_set():
+        next_timer.cancel()
+        exit()
 
 # Task 7/8: This thread function combines DBFs into one QBF every 9 minutes and sends to server
-def qbf_cycle():
+def qbf_cycle(socket, tcp_lock):
     global dbf_list
     # start timer for next timer cycle immediately in order for
     # cycle time to remain as 540 seconds and not affected by function overhead
@@ -173,50 +179,93 @@ def qbf_cycle():
     qbf = combine_DBFS(dbf_list)
     print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
     print("[Task 10-a] Uploading QBF to server")
-    send_qbf(qbf)
+    with tcp_lock:
+        response = send_qbf(socket, qbf)
+    if response == True:
+        print("\033[33;1m"+ f'Our system HAS found that you have been in close contact with someone who has been diagnosed positive with COVID-19\nPLEASE SEAK THE APPROPIATE ATTENTION AND CARE' + "\033[0m")
+    if response == False:
+        print('Our system has NOT found that you have been in close contact with someone who has been diagnosed positive with COVID-19')
+    else:
+        edebug(f'[qbf_cycle] failed to send QBF to server')
+
+    if stop_event.is_set():
+        next_timer.cancel()
+        exit()
+
+    
 
 # Task 9: Wait for a user nput to indictate node has COVID-19, once indicated,
 # combine all DBFs into a CBF and upload to server, once uploaded stop sending QBFs
-def wait_for_covid():
+# thread for general user input, inclues indictating node has COVID-19, as per task 9
+def wait_for_input(socket, tcp_lock):
     global dbf_list
     # create qbf cycle timer in here so that once positive can cancel timer and stop sending QBFs
-    qbf_cycle_timer = threading.Timer(QBF_TIMER, qbf_cycle)
+    qbf_cycle_timer = threading.Timer(QBF_TIMER, qbf_cycle, args=(socket, tcp_lock))
     qbf_cycle_timer.daemon = True
     qbf_cycle_timer.start()
 
     while True:
-        user_input = input("Enter 'p' or 'P' to test positive to COVID-19------")
+        user_input = input(f"""
+                        >Enter 'p' to test positive to COVID-19\n
+                        >Enter 'info' to request the server to display info\n
+                        >Enter 'verbose' to request the server to display info including all CBF's\n
+                        >Enter 'dc' to dissconnect from the server
+                        """)
         if user_input.lower() == 'p':
             user_input = input("[Task 9] Tested positive for COVID-19, do you want to send your CBF?\nEnter Y or 'y' for yes or any other letter otherwise:")
             if user_input.lower == 'Y':
                 qbf_cycle_timer.cancel()
                 cbf = combine_DBFS(dbf_list)
                 print(f"Combining all DBFs into one CBF (# of '1' bits: {cbf.get_num_true()})")
-                print("Uploading CBF to server and no more sending QBFs")
-                send_cbf(cbf)
+                print("Uploading CBF to server and no more sending QBFs...")
+                with tcp_lock:
+                    send_cbf(socket, cbf)
                 break
 
+        if user_input.lower() == 'info':
+            print('requesting the server to display info on its terminal...')
+            with tcp_lock:
+                send_msg(socket, HEAD_INFO)
+            print('...done')
+        
+        if user_input.lower() == 'verbose':
+            print("requesting the server to display info including all CBF's on its terminal...")
+            with tcp_lock:
+                send_msg(socket, HEAD_INFO)
+            print('...done')
+
+        if user_input.lower() == 'dc':
+            print("requesting server close connection...")
+            with tcp_lock:
+                send_msg(socket, HEAD_INFO)
+                header, data = receive_msg(socket)
+            if header == HEAD_SUCCESS:
+                print('...done, exiting')
+                qbf_cycle_timer.cancel()
+                stop_event.set()
+                socket.close()
+                exit()
+            else:
+                edebug('server could not close connection')
+
 # thread function to receive all server messages, interpret and display 
-def server_receiver():
-    print()
+# def server_receiver():
+#     print()
 
-def send_qbf(qbf):
-    print
-
-def send_cbf(cbf):
-    print
+# ^^^if this needs to be done later, use socket.setblocking(False) at the end of the while loop in wait_for_input
+# temporaraly to catch anything in the socket buffer, and do something with that...
         
 def start():
     threading.Thread(name="UDPBroadcaster", target=udp_broadcaster).start()
     threading.Thread(name="UDPReceiver", target=udp_receiver).start()
     dbf_cycle_timer = threading.Timer(DBF_TIMER, dbf_cycle)
-    covid_thread  = threading.Thread(name="waitForCovid", target=wait_for_covid)
+    input_thread  = threading.Thread(name="waitForInput", target=wait_for_input, args=(socket, tcp_lock))
 
     dbf_cycle_timer.daemon = True
-    covid_thread.daemon = True
+    input_thread.daemon = True
     dbf_cycle_timer.start()
-    time.sleep(0.05) # just want to ensure dbf_cycle_timer starts before qbf_cycle_timer (which is in covid_thread)
-    covid_thread.start()
+    time.sleep(0.05) # just want to ensure dbf_cycle_timer starts before qbf_cycle_timer (which is in input_thread)
+    input_thread.start()
 
 if __name__ == "__main__":
     start()
