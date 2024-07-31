@@ -40,6 +40,9 @@ class BloomFilter(object):
 
     def __str__(self):
         return self.bits.to01()
+    
+    def get_bitarray(self):
+        return self.bits
 
     
 
