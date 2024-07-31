@@ -18,6 +18,12 @@ n = 5
 
 address = ('<broadcast>', 8500)
 server_address = ('localhost', 55000)
+
+# TCP connection
+tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+tcp_socket.connect(server_address)
+print(f"""connecting to server on {server_address}""")
+
 last_ephid_time = time.time()
 shares = []
 received_shares = defaultdict(list)
