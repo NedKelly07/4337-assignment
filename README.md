@@ -7,3 +7,5 @@ python3 -m venv venv
 source venv/bin/activate
 pip install -r requirements.txt
 ```
+
+use ```source venv/bin/activate``` when working on or running the assignment. you will know its working by the (venv) on your shell
