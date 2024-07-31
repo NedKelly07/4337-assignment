@@ -30,11 +30,13 @@ class BloomFilter(object):
     def combine(self, other):
         self.bits |= other.bits
 
-
     # two bloom filters 'match' if the AND bitwise operation has a value with 3 or more bits set to 1
     def match(self, other): 
         and_result = self.bits & other.bits
         return and_result.count(1) >= 3
+    
+    def get_num_true(self):
+        return self.bits.count(1)
 
     def __str__(self):
         return self.bits.to01()

@@ -4,10 +4,11 @@ import socket
 import threading
 import time
 from bloomFilter import BloomFilter
+from collections import defaultdict, deque
+from copy import deepcopy
 from cryptography.hazmat.primitives.asymmetric import x25519
 from cryptography.hazmat.primitives.kdf.hkdf import HKDF
 from cryptography.hazmat.primitives import serialization, hashes 
-from collections import defaultdict, deque
 from subrosa import split_secret, recover_secret, Share
 from helper import combine_DBFS
 
@@ -127,24 +128,58 @@ def verify_and_reconstruct_shares(shares, original_ephid_hash):
             print("[TASK 5]: Derived Encounter ID (EncID):", EncID.hex())
             del received_shares[original_ephid_hash]
             print("\n[TASK 6] Adding EncID to DBF")
-            dbf.add(EncID) # decoding to string is better than using str()
+            dbf.add(EncID) 
+            print(f"DBF # of '1' bits: {dbf.get_num_true()}")
             
         else:
             print("Failed to verify the reconstructed EphID.")
     except Exception as e:
         print(f"Error reconstructing EphID: {e}")
 
-# TASK 7: This thread funciton will swpa out DBF every 90 seconds
+# TASK 7: This thread funciton will swap out DBF every 90 seconds
 def dbf_cycle():
-    print()
+    global dbf, dbf_list
+    # start timer for next timer cycle immediately in order for
+    # cycle time to remain as 90 seconds and not affected by function overhead
+    next_timer = threading.Timer(DBF_TIMER, dbf_cycle)
+    next_timer.daemon = True # set to true to ensurte timers end when program ends
+    next_timer.start()
 
-# Task 7: This thread function, combines DBFs into one QBF
+    print("\n[Task 7B] Rotating old DBF to new DBF")
+    if len(dbf_list) == 6:
+        dbf_list.pop(0) # pop oldest dbf from list
+    print("Appending old DBF to dbf_list\n")
+    dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
+    print("Creating new DBF")
+    dbf.reset() # setting all bits to 0 essentially makes a new dbf
+
+
+# Task 7/8: This thread function combines DBFs into one QBF every 9 minutes and sends to server
 def qbf_cycle():
-    print
+    global dbf_list
+    # start timer for next timer cycle immediately in order for
+    # cycle time to remain as 540 seconds and not affected by function overhead
+    next_timer = threading.Timer(QBF_TIMER, qbf_cycle)
+    next_timer.daemon = True # set to true to ensurte timers end when program ends
+    next_timer.start()
+
+    qbf = combine_DBFS(dbf_list)
+    print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
+
+    #!!!Need code here to send QBF to server (maybe have entire thread to itself for server respones)!!!#
+
         
 def start():
     threading.Thread(name="UDPBroadcaster", target=udp_broadcaster).start()
     threading.Thread(name="UDPReceiver", target=udp_receiver).start()
+
+    dbf_cycle_timer = threading.Timer(DBF_TIMER, dbf_cycle)
+    qbf_cycle_timer = threading.Timer(QBF_TIMER, qbf_cycle)
+    dbf_cycle_timer.daemon = True
+    qbf_cycle_timer.daemon = True
+    dbf_cycle_timer.start()
+    time.sleep(0.05) # just want to ensure dbf_cycle_timer starts first and after 6 cycles 
+    qbf_cycle_timer.start()
 
 if __name__ == "__main__":
     start()
