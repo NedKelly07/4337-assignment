@@ -2,6 +2,7 @@ import bloomFilter
 import struct
 import base64
 from base64 import b64decode, b64encode
+from bitarray import bitarray
 from copy import deepcopy
 from time import sleep
 import select
