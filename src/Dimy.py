@@ -44,6 +44,7 @@ QBF_TIMER = 540
 
 dbf = BloomFilter() # initial dbf
 dbf_list = []
+dfs_list_lock = threading.Lock()
 
 # TASK 1 
 def generate_ephid():
@@ -156,10 +157,11 @@ def dbf_cycle():
     next_timer.start()
 
     print("\n[Task 7B] Rotating old DBF to new DBF")
-    if len(dbf_list) == 6:
-        dbf_list.pop(0) # pop oldest dbf from list
-    print("Appending old DBF to dbf_list\n")
-    dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
+    with dfs_list_lock:
+        if len(dbf_list) == 6:
+            dbf_list.pop(0) # pop oldest dbf from list
+        print("Appending old DBF to dbf_list\n")
+        dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
     print("Creating new DBF")
     dbf.reset() # setting all bits to 0 essentially makes a new dbf
 
@@ -176,8 +178,10 @@ def qbf_cycle(socket, tcp_lock):
     next_timer.daemon = True # set to true to ensurte timers end when program ends
     next_timer.start()
 
-    qbf = combine_DBFS(dbf_list)
+    with dfs_list_lock:
+        qbf = combine_DBFS(dbf_list)
     print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
+
     print("[Task 10-a] Uploading QBF to server")
     with tcp_lock:
         response = send_qbf(socket, qbf)
@@ -215,7 +219,8 @@ def wait_for_input(socket, tcp_lock):
             user_input = input("[Task 9] Tested positive for COVID-19, do you want to send your CBF?\nEnter Y or 'y' for yes or any other letter otherwise:")
             if user_input.lower == 'Y':
                 qbf_cycle_timer.cancel()
-                cbf = combine_DBFS(dbf_list)
+                with dfs_list_lock:
+                    cbf = combine_DBFS(dbf_list)
                 print(f"Combining all DBFs into one CBF (# of '1' bits: {cbf.get_num_true()})")
                 print("Uploading CBF to server and no more sending QBFs...")
                 with tcp_lock:

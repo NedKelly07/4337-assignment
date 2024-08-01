@@ -2,6 +2,7 @@ import bloomFilter
 import struct
 import base64
 from bitarray import bitarray
+from copy import deepcopy
 
 debug = True # toggle for verbose data output
 
@@ -18,8 +19,9 @@ HEAD_INFO_VERBOSE = "VERB"
 
 def combine_DBFS(bloom_list):
     # Initialize combined_DBFS with the first Bloom filter
-    combined_DBFS = bloom_list.pop(0)
-    for bloom_filter in bloom_list:
+    lst_cpy = deepcopy(bloom_list)
+    combined_DBFS = lst_cpy.pop(0)
+    for bloom_filter in lst_cpy:
         combined_DBFS.combine(bloom_filter)
     return combined_DBFS
 
