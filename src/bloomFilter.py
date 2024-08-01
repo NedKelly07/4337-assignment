@@ -19,7 +19,7 @@ class BloomFilter(object):
         hash_digests = []
         # Generate three different hash digests for key and add each to bitmap
         for seed in range(self.hash_num):
-            hash_digest = mmh3.hash(key, seed)
+            hash_digest = mmh3.hash(key, seed) % self.size
             print(f"Hash [{seed}]: {hash_digest}")
             hash_digests.append(hash_digest)
 
