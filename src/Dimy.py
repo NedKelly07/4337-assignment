@@ -140,7 +140,7 @@ def verify_and_reconstruct_shares(shares, original_ephid_hash):
             del received_shares[original_ephid_hash]
             print("\n[TASK 6] Adding EncID to DBF")
             dbf.add(EncID) 
-            print(f"DBF # of '1' bits: {dbf.get_num_true()}")
+            print(f"DBF # of '1' bits: {dbf.get_num_true()}\n")
             
         else:
             print("Failed to verify the reconstructed EphID.")
@@ -160,9 +160,9 @@ def dbf_cycle():
     with dfs_list_lock:
         if len(dbf_list) == 6:
             dbf_list.pop(0) # pop oldest dbf from list
-        print("Appending old DBF to dbf_list\n")
+        print("Appending old DBF to dbf_list")
         dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
-    print("Creating new DBF")
+    print("Creating new DBF\n")
     dbf.reset() # setting all bits to 0 essentially makes a new dbf
 
     if stop_event.is_set():
@@ -180,9 +180,9 @@ def qbf_cycle(socket, tcp_lock):
 
     with dfs_list_lock:
         qbf = combine_DBFS(dbf_list)
-    print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
+    print(f"\n[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})\n")
 
-    print("[Task 10-a] Uploading QBF to server")
+    print("\n[Task 10-a] Uploading QBF to server")
     with tcp_lock:
         response = send_qbf(socket, qbf)
     if response == True:
@@ -213,16 +213,16 @@ def wait_for_input(socket, tcp_lock):
                         >Enter 'p' to test positive to COVID-19\n
                         >Enter 'info' to request the server to display info\n
                         >Enter 'verbose' to request the server to display info including all CBF's\n
-                        >Enter 'dc' to dissconnect from the server
+                        >Enter 'dc' to dissconnect from the server\n
                         """)
         if user_input.lower() == 'p':
-            user_input = input("[Task 9] Tested positive for COVID-19, do you want to send your CBF?\nEnter Y or 'y' for yes or any other letter otherwise:")
+            user_input = input("\n[Task 9] Tested positive for COVID-19, do you want to send your CBF?\nEnter Y or 'y' for yes or any other letter otherwise:")
             if user_input.lower == 'Y':
                 qbf_cycle_timer.cancel()
                 with dfs_list_lock:
                     cbf = combine_DBFS(dbf_list)
-                print(f"Combining all DBFs into one CBF (# of '1' bits: {cbf.get_num_true()})")
-                print("Uploading CBF to server and no more sending QBFs...")
+                print(f"\nCombining all DBFs into one CBF (# of '1' bits: {cbf.get_num_true()})")
+                print("Uploading CBF to server and no more sending QBFs...\n")
                 with tcp_lock:
                     send_cbf(socket, cbf)
                 break
