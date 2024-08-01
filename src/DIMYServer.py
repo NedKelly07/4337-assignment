@@ -3,11 +3,12 @@ import threading
 from base64 import b64decode, b64encode
 from bloomFilter import *
 from helper import *
+import re
 
 address = ("localhost", 55000)
 server = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 server.bind(address)
-
+NUM_PARTS = 4
 # message deffinition:
 # header - data size - data
 # header is static size HEADER_SIZE
@@ -15,89 +16,55 @@ server.bind(address)
 
 cbf_list = []
 
-def client_handler(socket, client_addr):
+def client_handler(socket):
     while True:
-        header, data_bits = receive_msg(socket)
-        bf = BloomFilter()
-        if (data_bits != 0) and (header == HEAD_QBF or header == HEAD_QBF):
-            bf = BloomFilter(bit_array=data_bits)
-            pdebug(f'got client BF: [{bf}]')
-        pdebug(f'got message from [{client_addr}] with header: [{header}]')
-        if header == HEAD_CBF:
-            print(f'[Task 9] client [{client_addr}] uploading CBF...')
-            try:
-                cbf_list.append(bf)
-            except Exception as e:
-                edebug(f'[client_handler] exception {e}')
-                send_msg(socket, HEAD_FAIL)
-            else:
-                send_msg(socket, HEAD_SUCCESS)
-                print(f'...done\nCBF content: [{bf}]')
+        received_parts = []
         
-        if header == HEAD_QBF:
-            print(f'[Task 10] client [{client_addr}] uploading QBF...')
-            match = None
-            found = False
-            for cbf in cbf_list:
-                if cbf.match(bf):
-                    found = True
-                    match = cbf
-                    break
-            print('...done')
-            if found:
-                # match with covid positive interaction
-                print(f'client [{client_addr}] positive match with existing CBF')
-                pdebug(f'client BF: \n[{bf}]\nmatched with CBF:\n[{cbf}]')
-                send_msg(socket, HEAD_SUCCESS)
-            else:
-                print(f'client [{client_addr}] no match with existing CBF\'s')
-                send_msg(socket, HEAD_FAIL)
-        
-        if header == HEAD_DISCONNECT:
-            print(f'client [{client_addr}] dissconnect.')
-            print(f'associated client_handler exiting...')
-            send_msg(socket, HEAD_SUCCESS)
-            socket.close()
-            exit()
-
-        if header == HEAD_INFO:
-            print(f'client [{client_addr}] request info.')
-            info = f"""
-            server address: [{address}]\n
-            connected with client: [{client_addr}]\n
-            server debug mode: [{debug}]\n
-            CBF's stored: [{len(cbf_list)}]
-            """
-            print(info)
-
-        if header == HEAD_INFO_VERBOSE:
-            print(f'client [{client_addr}] request verbose info.')
-            info = f"""
-            server address: [{address}]\n
-            connected with client: [{client_addr}]\n
-            server debug mode: [{debug}]\n
-            CBF's stored: [{len(cbf_list)}]\n
-            CBF list:\n
-            """
-            for cbf in cbf_list:
-                info = info + '[' + cbf + ']' + f'\n'
+        for _ in range(NUM_PARTS):
+            part = receive_message(socket)
+            if part:
+                received_parts.append(part)
+                                
+        if len(received_parts) == NUM_PARTS:
+            entire_message = ''.join(received_parts)
+            bf_type, bloom_filter = reconstruct_bf(entire_message)
+            print("Reconstructed bloom filter!", bf_type)
             
-            print(info)
-
+            
+            if bf_type == 'CBF':
+                print("Uploading close contacts CBF to server.")
+                cbf_list.append(bloom_filter)
+                return_match_message('Uploaded', socket)
+                   
+            elif bf_type == 'QBF':
+                if len(cbf_list) == 0:
+                    return_match_message('Negative', socket)
+                    break
+                print("Received QBF.")
+                # checking all cbfs in the list for a matching bf
+                for cbfs in cbf_list:
+                    print(type(cbfs))
+                    for cbf in cbfs: 
+                        print(type(cbf))
+                        if cbf.match(bloom_filter):
+                            print("Match found")
+                            return_match_message('Positive', socket)
+                            break
+                print("Match not found")
+                return_match_message('Negative', socket)          
+            
         else:
-            send_msg(socket, HEAD_FAIL) # bad data
-            edebug(f'malformed packet (??)\ngot unrecognised header: [{header}]... EXPECT UNDEFINED BEHAVIOR FROM HERE')
-            # could be due to issues with BF transfer, or buffer not flushing properly...
-    
+            print("Error: Did not receive all parts.")
+            break
     exit()
 
 def start():
     server.listen()
     while True:
         socket, client_addr = server.accept()
-        thread = threading.Thread(target=client_handler, args=(socket, client_addr))
+        thread = threading.Thread(target=client_handler, args=(socket,))
         thread.start()
-        print(f"[NEW CONNECTION] - {client_addr}\n![CURRENT CONNECTIONS] - {threading.activeCount()-1}")
+        print(f"[NEW CONNECTION] - {client_addr}\n![CURRENT CONNECTIONS] - {threading.active_count()-1}")
 
 def main():
     print(f"[SERVER STARTUP] - binding to {address}")

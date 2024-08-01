@@ -20,7 +20,7 @@ class BloomFilter(object):
         # Generate three different hash digests for key and add each to bitmap
         for seed in range(self.hash_num):
             hash_digest = mmh3.hash(key, seed) % self.size
-            print(f"Hash [{seed}]: {hash_digest}")
+            # print(f"Hash [{seed}]: {hash_digest}") debug message
             hash_digests.append(hash_digest)
 
             self.bits[hash_digest] = True
@@ -44,6 +44,3 @@ class BloomFilter(object):
     
     def get_bitarray(self):
         return self.bits
-
-    
-
