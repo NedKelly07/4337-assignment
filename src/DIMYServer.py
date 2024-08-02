@@ -28,7 +28,8 @@ def client_handler(socket):
         if len(received_parts) == NUM_PARTS:
             entire_message = ''.join(received_parts)
             bf_type, bloom_filter = reconstruct_bf(entire_message)
-            print("Reconstructed bloom filter!", bf_type)
+            bloom_filter = BloomFilter(bloom_filter)
+            print("Reconstructed bloom filter!", bf_type, bloom_filter.get_num_true())
             
             
             if bf_type == 'CBF':
@@ -39,23 +40,23 @@ def client_handler(socket):
             elif bf_type == 'QBF':
                 if len(cbf_list) == 0:
                     return_match_message('Negative', socket)
-                    break
+                    continue
                 print("Received QBF.")
                 # checking all cbfs in the list for a matching bf
-                for cbfs in cbf_list:
-                    print(type(cbfs))
-                    for cbf in cbfs: 
-                        print(type(cbf))
-                        if cbf.match(bloom_filter):
-                            print("Match found")
-                            return_match_message('Positive', socket)
-                            break
-                print("Match not found")
-                return_match_message('Negative', socket)          
+                for cbf in cbf_list:
+                    # print(type(cbf))
+                    if cbf.match(bloom_filter):
+                        print("Match found")
+                        return_match_message('Positive', socket)
+                        break
+                else:
+                    print("Match not found")
+                    return_match_message('Negative', socket)          
             
         else:
             print("Error: Did not receive all parts.")
             break
+    print("exiting")
     exit()
 
 def start():

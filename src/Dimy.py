@@ -42,8 +42,8 @@ BROADCAST_TIMER = 3
 EPHID_TIMER = 15
 # DBF_TIMER = 90
 # QBF_TIMER = 540
-DBF_TIMER = 30
-QBF_TIMER = 60
+DBF_TIMER = 40
+QBF_TIMER = 80
 
 dbf = BloomFilter() # initial dbf
 dbf_list = []
@@ -166,21 +166,21 @@ def tcp_sender():
             print("\n[Task 7B] Rotating old DBF to new DBF")
             if len(dbf_list) == 6:
                 dbf_list.pop(0) # pop oldest dbf from list
-            print("Appending old DBF to dbf_list\n")
+            print("Appending old DBF to dbf_list")
             dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
-            print("Creating new DBF")
+            print("Creating new DBF\n")
             dbf.reset() # setting all bits to 0 essentially makes a new dbf
             dbf_timer += DBF_TIMER 
 
         # every 9 minutes, combine all DBFs into one QBF and send to server
         if curr_time > qbf_timer:
-            print(len(dbf_list), "forQBF")
+            print(f"\nNumber of DBFs in DBF list: {len(dbf_list)}")
             qbf = combine_DBFS(dbf_list)
             if qbf is None:
                 continue
-            # print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits: {qbf.get_num_true()})")
+            print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits in QBF: {qbf.get_num_true()})")
             print("[Task 10-a] Uploading QBF to server")
-            print(len(qbf.get_bitarray()))
+            # print(len(qbf.get_bitarray()))
             send_bf(tcp_socket, qbf.get_bitarray(), 'QBF|')
             qbf.reset()
             qbf_timer += QBF_TIMER   
@@ -191,15 +191,15 @@ def tcp_receiver():
         server_msg = receive_message(tcp_socket)
         if server_msg == False:
             break
-        print(server_msg)
+        # print(server_msg)
         result = server_msg
         if result == "Uploaded":
-            print(f"\n[TASK 10-B]: Server upload response: {result} successfully")
+            print(f"\n[TASK 10-B]: Server upload response: {result} successfully\n")
             # exit_program = True
         else:
             print(f"\n[TASK 10-B]: Results from server: {result} match")
             if result == "Positive":
-                print("Stay at home for recommended period. Get well soon!")
+                print("Stay at home for recommended period. Get well soon!\n")
                 # exit_program = True
                 
 def listen_for_keypress():
@@ -212,13 +212,13 @@ def listen_for_keypress():
 def on_p_pressed():
     global exit_program
     if check_covid_positive():
-        print(len(dbf_list), "forCBF")
+        print(f"Number of DBFs in DBF list: {len(dbf_list)}")
         close_contacts_cbf = combine_DBFS(dbf_list)
         if close_contacts_cbf is None:
             print("[TASK 10] No DBFs available to combine.")
             return  # Exit the function without proceeding
-        print(f"[TASK 10] Combining all DBFs into one CBF, sending CBF to server and stopping QBF generation")
-        print(len(close_contacts_cbf.get_bitarray()))
+        print(f"\n[TASK 10] Combining all DBFs into one CBF (# of '1' bits in CBF: {close_contacts_cbf.get_num_true()}), sending CBF to server and stopping QBF generation\n")
+        # print(len(close_contacts_cbf.get_bitarray()))
         send_bf(tcp_socket, close_contacts_cbf.get_bitarray(), 'CBF|')
         # receive a confirmation that the upload is successful
         exit_program = True

@@ -1,4 +1,4 @@
-import bloomFilter
+from bloomFilter import *
 import struct
 import base64
 from base64 import b64decode, b64encode
@@ -35,8 +35,8 @@ def send_bf(socket, bf, bf_type):
     split_message = [entire_message[i * part_size:(i + 1) * part_size] for i in range(NUM_PARTS)]
     for part in split_message:
         message_to_send = add_header(part)
-        print(type(message_to_send))
-        socket.send(message_to_send)
+        # print(type(message_to_send))
+        socket.send(message_to_send.encode())
         sleep(0.5) 
         
 def receive_message(socket):
@@ -44,7 +44,7 @@ def receive_message(socket):
     if header == '':
         return False
     message_length = int(header)
-    print(f"Message length: {message_length}")
+    # print(f"Message length: {message_length}")
     message = socket.recv(message_length).decode('utf-8')
     return message
 
@@ -64,7 +64,7 @@ def reconstruct_bf(entire_message):
         return None
     bf = bitarray()
     bf.frombytes(bf_bytes)
-    print(bf_type)
+    # print(bf_type)
     return bf_type, bf  
 
 def return_match_message(result, socket):
