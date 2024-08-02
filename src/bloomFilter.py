@@ -38,6 +38,13 @@ class BloomFilter(object):
     
     def get_num_true(self):
         return self.bits.count(1)
+    
+    def get_pos_true(self):
+        pos_list = []
+        for i in range(self.size):
+            if self.bits[i] == True:
+                pos_list.append(i)
+        return pos_list
 
     def __str__(self):
         return self.bits.to01()
