@@ -63,7 +63,6 @@ def start():
 
 def main():
     print(f"[SERVER STARTUP] - binding to {address}")
-    print(f'debug mode is set to [{debug}], this controlls the extra verbose '+ '\033[1;90m' + 'grey output' + '\033[0m' + ', toggle this at the top of helper.py')
     start()
 
 if __name__ == "__main__":
