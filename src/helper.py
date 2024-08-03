@@ -1,4 +1,4 @@
-from bloomFilter import *
+import bloomFilter
 import struct
 import base64
 from base64 import b64decode, b64encode
@@ -7,14 +7,9 @@ from copy import deepcopy
 from time import sleep
 import select
 
-
-debug = True # toggle for verbose data output
-
 HEADER_SIZE = 20
-NUM_PARTS = 4
 
 def combine_DBFS(bloom_list):
-    # Initialize combined_DBFS with the first Bloom filter
     if len(bloom_list) == 0:
         return None
     lst_cpy = deepcopy(bloom_list)
@@ -26,32 +21,41 @@ def combine_DBFS(bloom_list):
 def add_header(message):
     return f"{len(message):<{HEADER_SIZE}}" + message
 
-def send_bf(socket, bf, bf_type):
+def send_bf(sock, bf, bf_type):
     bf_bytes = bf.tobytes()
-    # encode bytes into base64 encoded bytes objkect, transform into string rep
-    bf_string = b64encode(bf_bytes).decode()    
+    bf_string = b64encode(bf_bytes).decode()  # Encode bytes to base64 string
     entire_message = bf_type + bf_string
-    part_size = len(entire_message) // NUM_PARTS
-    split_message = [entire_message[i * part_size:(i + 1) * part_size] for i in range(NUM_PARTS)]
-    for part in split_message:
-        message_to_send = add_header(part)
-        # print(type(message_to_send))
-        socket.send(message_to_send.encode())
-        sleep(0.5) 
+    
+    # add header and send message to server
+    message_with_header = add_header(entire_message)
+    sock.sendall(message_with_header.encode())
         
-def receive_message(socket):
-    header = socket.recv(HEADER_SIZE).decode('utf-8').strip()
-    if header == '':
+def receive_message(sock):
+    try:
+        # Receive the header first
+        header = sock.recv(HEADER_SIZE)
+        if not header: 
+            return False
+        
+        message_length = int(header.decode().strip())
+        
+        # Now receive the rest of the message
+        data = b""
+        while len(data) < message_length:
+            packet = sock.recv(message_length - len(data))
+            if not packet:
+                return False
+            data += packet
+        
+        return data.decode()
+    except Exception as e:
+        print(f"Error receiving message: {e}")
         return False
-    message_length = int(header)
-    # print(f"Message length: {message_length}")
-    message = socket.recv(message_length).decode('utf-8')
-    return message
 
 def reconstruct_bf(entire_message):
     try:
         # Split the message into the type and encoded bitarray
-        bf_type, bf_encoded = entire_message.split('|', 1)  # Split only once
+        bf_type, bf_encoded = entire_message.split('|', 1)
     except ValueError:
         print("Error: Message format is incorrect. Could not split into type and data.")
         return None
@@ -64,7 +68,7 @@ def reconstruct_bf(entire_message):
         return None
     bf = bitarray()
     bf.frombytes(bf_bytes)
-    # print(bf_type)
+    print(bf_type)
     return bf_type, bf  
 
 def return_match_message(result, socket):
