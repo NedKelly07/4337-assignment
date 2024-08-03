@@ -3,6 +3,7 @@
 # Justina Nguyen-  z5419348
 # Nick Talbot - z5316975
 ###
+# Taken a copy of Dimy.py and added attcking code at the end to run
 import random
 import hashlib
 import socket
@@ -46,10 +47,10 @@ exit_program = False
 
 BROADCAST_TIMER = 3
 EPHID_TIMER = 15
-# DBF_TIMER = 90
-# QBF_TIMER = 540
-DBF_TIMER = 40
-QBF_TIMER = 60
+DBF_TIMER = 90
+QBF_TIMER = 540
+DBF_TIMER = 40 # for test
+QBF_TIMER = 60 # for test
 
 dbf = BloomFilter()
 dbf_list = []
@@ -244,7 +245,9 @@ def on_p_pressed():
         print(f"\n[TASK 10] Combining all DBFs into one CBF (# of '1' bits in CBF: {close_contacts_cbf.get_num_true()}), sending CBF to server and stopping QBF generation\n")
         send_bf(tcp_socket, close_contacts_cbf.get_bitarray(), 'CBF|')
         exit_program = True
-        
+
+# create a number of threads (num_threads) to broadcast the same ephID
+# which will flood the UDP connection for other nodes and cause erors in deriving EncIDs
 def start_flooding():
     threads = []
     for i in range(num_threads):
@@ -268,6 +271,6 @@ def start():
 
 if __name__ == "__main__":
     start()
-    start_flooding()
+    start_flooding() # start attack
 
 
