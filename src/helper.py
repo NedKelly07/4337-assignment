@@ -68,7 +68,7 @@ def reconstruct_bf(entire_message):
         return None
     bf = bitarray()
     bf.frombytes(bf_bytes)
-    print(bf_type)
+    #print(bf_type)
     return bf_type, bf  
 
 def return_match_message(result, socket):
@@ -78,7 +78,7 @@ def return_match_message(result, socket):
 
 def check_covid_positive():
     while True:
-        user_notify = input("Would you like to notify your close contacts? Enter 'Y' or 'N': \n").strip().upper()
+        user_notify = input("\nWould you like to notify your close contacts? Enter 'Y' or 'N': \n").strip().upper()
         if user_notify in ['Y', 'N']:
             return user_notify == 'Y'
         print("Invalid input. Please enter 'Y' or 'N'.")

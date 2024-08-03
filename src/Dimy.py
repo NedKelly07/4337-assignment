@@ -38,10 +38,10 @@ exit_program = False
 
 BROADCAST_TIMER = 3
 EPHID_TIMER = 15
-# DBF_TIMER = 90
-# QBF_TIMER = 540
+# DBF_TIMER = 90 # use these for video
+# QBF_TIMER = 540 # use these for video
 DBF_TIMER = 40
-QBF_TIMER = 60
+QBF_TIMER = 80
 
 dbf = BloomFilter()
 dbf_list = []
@@ -154,9 +154,9 @@ def verify_and_reconstruct_shares(shares, original_ephid_hash):
             ).derive(shared_secret)
             print("[TASK 5]: Derived Encounter ID (EncID):", EncID.hex())
             del received_shares[original_ephid_hash]
-            print("[TASK 6] Adding EncID to DBF")
+            print("\n[TASK 6] Adding EncID to DBF and deleting EncID")
             dbf.add(EncID)
-            print(f"DBF # of '1' bits: {dbf.get_num_true()}")
+            print(f"[Task 7-A] DBF # of bits set: {dbf.get_num_true()}\n")
         else:
             print("Failed to verify the reconstructed EphID.")
     except Exception as e:
@@ -172,10 +172,11 @@ def update_dbf():
         curr_time = time.time() - start_time
         # every 90 seconds, create a new DBF
         if curr_time > dbf_timer:
-            print("\n[Task 7B] Rotating old DBF to new DBF")
+            print(f"\n[Task 7-B] Rotating old DBF to new DBF: (OLD DBF # of bits set = {dbf.get_num_true()})")
             if len(dbf_list) == 6:
                 dbf_list.pop(0) # pop oldest dbf from list
-            print("Appending old DBF to dbf_list")
+                print("6 DBFs current in dbf list, deleting oldest DBF to make room")
+            print("Appending old DBF to dbf list")
             dbf_list.append(deepcopy(dbf)) # need to make independant copy of old dbf
             print("Creating new DBF\n")
             dbf.reset() # setting all bits to 0 essentially makes a new dbf
@@ -193,12 +194,12 @@ def send_qbf():
         curr_time = time.time() - start_time
         # every 9 minutes, combine all DBFs into one QBF and send to server
         if curr_time > qbf_timer:
-            print(f"\nNumber of DBFs in DBF list: {len(dbf_list)}")
+            print(f"\n[Task 8] Combining all DBFs into one QBF [Number of DBFs in current DBF list: {len(dbf_list)}]")
             qbf = combine_DBFS(dbf_list)
             if qbf is None:
                 continue
-            print(f"[Task 8] Combining all DBFs into one QBF (# of '1' bits in QBF: {qbf.get_num_true()})")
-            print("[Task 10-a] Uploading QBF to server")
+            print(f"(# of bits set in QBF: {qbf.get_num_true()}\n)")
+            print("\n[Task 10-A] Uploading QBF to server\n")
             send_bf(tcp_socket, qbf.get_bitarray(), 'QBF|')
             qbf.reset()
             qbf_timer += QBF_TIMER
@@ -212,11 +213,13 @@ def tcp_receiver():
             break
         result = server_msg
         if result == "Uploaded":
-            print(f"\n[TASK 10-B]: Server upload response: {result} successfully\n")
+            print(f"\n[TASK 9]: Server upload response: {result} successfully\n")
         else:
             print(f"\n[TASK 10-B]: Results from server: {result} match")
             if result == "Positive":
                 print("Stay at home for recommended period. Get well soon!\n")
+            else:
+                print("\n")
                 
 def listen_for_keypress():
     while True:
@@ -228,12 +231,12 @@ def listen_for_keypress():
 def on_p_pressed():
     global exit_program
     if check_covid_positive():
-        print(f"Number of DBFs in DBF list: {len(dbf_list)}")
+        print(f"\n[TASK 9] Combining all DBFs into one CBF [Number of DBFs in current DBF list: {len(dbf_list)}]")
         close_contacts_cbf = combine_DBFS(dbf_list)
         if close_contacts_cbf is None:
-            print("[TASK 10] No DBFs available to combine.")
+            print("No DBFs available to combine.\n")
             return  # Exit the function without proceeding
-        print(f"\n[TASK 10] Combining all DBFs into one CBF (# of '1' bits in CBF: {close_contacts_cbf.get_num_true()}), sending CBF to server and stopping QBF generation\n")
+        print(f"(# of bits set in CBF: {close_contacts_cbf.get_num_true()})\nSending CBF to server and stopping QBF generation\n")
         send_bf(tcp_socket, close_contacts_cbf.get_bitarray(), 'CBF|')
         exit_program = True
     

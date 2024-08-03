@@ -17,26 +17,32 @@ def client_handler(socket):
             if message:
                 bf_type, bloom_filter = reconstruct_bf(message)
                 bloom_filter = BloomFilter(bloom_filter)
-                print(f"Received Bloom filter type: {bf_type}")
+                print(f"\nReceived Bloom filter type: {bf_type}")
                 
                 if bf_type == 'CBF':
-                    print("Uploading close contacts CBF to server.")
+                    print("CBF uploaded to server.\n")
                     cbf_list.append(bloom_filter)
                     return_match_message('Uploaded', socket)
                     break
                 elif bf_type == 'QBF':
+                    print("[Task 10-C] Attempting to see if given QBF matches any CBFs stored")
                     if len(cbf_list) == 0:
+                        print("No CBFs to match with\n")
                         return_match_message('Negative', socket)
                         continue
                     # checking all cbfs in the list for a matching bf
                     match_found = False
+                    CBF_Num = 1
                     for cbf in cbf_list:
                         if cbf.match(bloom_filter):
                             return_match_message('Positive', socket)
                             match_found = True
+                            print(f"CBF [{CBF_Num}]: Matched\n")
                             break
+                        print(f"CBF [{CBF_Num}]: No Match")
+                        CBF_Num = CBF_Num + 1
                     if not match_found:
-                        print("Match not found")
+                        print("No Match found\n")
                         return_match_message('Negative', socket)
             else:
                 print("Error: Did not receive all parts.")
