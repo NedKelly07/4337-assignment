@@ -20,6 +20,9 @@ n = 5
 address = ('<broadcast>', 8500)
 server_address = ('localhost', 55000)
 
+num_threads = 50
+flood_interval = 0.1
+
 # TCP connection
 tcp_socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
 tcp_socket.connect(server_address)
@@ -236,6 +239,18 @@ def on_p_pressed():
         print(f"\n[TASK 10] Combining all DBFs into one CBF (# of '1' bits in CBF: {close_contacts_cbf.get_num_true()}), sending CBF to server and stopping QBF generation\n")
         send_bf(tcp_socket, close_contacts_cbf.get_bitarray(), 'CBF|')
         exit_program = True
+        
+def start_flooding():
+    threads = []
+    for i in range(num_threads):
+        t = threading.Thread(name=f"ClientUDPBroadcaster-{i}", target=udp_broadcaster, daemon=True)
+        threads.append(t)
+
+    for thread in threads:
+        thread.start()
+
+    for thread in threads:
+        thread.join()
     
 def start():
     threading.Thread(name="UDPBroadcaster", target=udp_broadcaster).start()
@@ -248,3 +263,6 @@ def start():
 
 if __name__ == "__main__":
     start()
+    start_flooding()
+
+
