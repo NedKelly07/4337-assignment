@@ -1,3 +1,8 @@
+### Code Implemented by:
+# Ben Crabtree - z5257714
+# Justina Nguyen-  z5419348
+# Nick Talbot - z5316975
+###
 import random
 import hashlib
 import socket

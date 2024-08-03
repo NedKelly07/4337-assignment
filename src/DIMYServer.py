@@ -1,3 +1,8 @@
+### Code Implemented by:
+# Ben Crabtree - z5257714
+# Justina Nguyen-  z5419348
+# Nick Talbot - z5316975
+###
 import socket
 import threading
 from base64 import b64decode, b64encode

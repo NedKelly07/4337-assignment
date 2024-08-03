@@ -1,3 +1,11 @@
+### Code Implemented by:
+# Ben Crabtree - z5257714
+# Justina Nguyen-  z5419348
+# Nick Talbot - z5316975
+###
+# Comment out debug printing code for Task1-5 if you want to 
+# see the debug printing messages for Task6-10 easier
+
 import random
 import hashlib
 import socket
@@ -38,10 +46,10 @@ exit_program = False
 
 BROADCAST_TIMER = 3
 EPHID_TIMER = 15
-DBF_TIMER = 90 # use these for video
-QBF_TIMER = 540 # use these for video
-#DBF_TIMER = 40
-#QBF_TIMER = 80
+DBF_TIMER = 90 
+QBF_TIMER = 540 
+#DBF_TIMER = 40 # used for tests
+#QBF_TIMER = 80 # used for tests
 
 dbf = BloomFilter()
 dbf_list = []
@@ -64,10 +72,10 @@ def shamir_secret_split(secret):
 # TASK 3: broadcast share with a probability of 0.5
 def broadcast_share(share, ephid_hash, sock):
     if random.random() < 0.5:
-        #print(f"[TASK 3a]: Dropping share: {share.hex()}\n")
+        print(f"[TASK 3a]: Dropping share: {share.hex()}\n")
         return
     message = f"{share.hex()}|{ephid_hash}"
-    #print(f"[TASK 3a]: Broadcasting share: {share.hex()}\n")
+    print(f"[TASK 3a]: Broadcasting share: {share.hex()}\n")
     sock.sendto(message.encode('utf-8'), address)
 
 # TASK 3: BROADCASTING SHARES AND GENERATING NEW EPHID EVERY 15 SECONDS 
@@ -85,12 +93,12 @@ def udp_broadcaster():
             shares = shamir_secret_split(ephid)
             last_ephid_time = current_time
             share_index = 0
-            #print(f"[TASK 1]: Generated new EphID with hash: {ephid_hash}\n")
+            print(f"[TASK 1]: Generated new EphID with hash: {ephid_hash}\n")
         
-            #print('[TASK 2]')
-            #for index, share in enumerate(shares, 1):
-                #print(f"Generated share {index} of {len(shares)}: {bytes(share).hex()}")
-            #print('\n')
+            print('[TASK 2]')
+            for index, share in enumerate(shares, 1):
+                print(f"Generated share {index} of {len(shares)}: {bytes(share).hex()}")
+            print('\n')
             
         if shares and share_index < len(shares):
             share = bytes(shares[share_index])
@@ -110,7 +118,7 @@ def udp_receiver():
             share_hex, recv_ephid_hash_hex = message.split('|', 1)
             if recv_ephid_hash_hex in own_ephid_hashes:
                 continue
-            #print(f"[TASK 3b]: Received share: {share_hex} \nwith EphID hash: {recv_ephid_hash_hex}\n")
+            print(f"[TASK 3b]: Received share: {share_hex} \nwith EphID hash: {recv_ephid_hash_hex}\n")
             ephid_key = recv_ephid_hash_hex
             
             if received_shares[ephid_key]['start_time'] is None:
@@ -124,14 +132,14 @@ def udp_receiver():
                 time_elapsed = time.time() - start_time
 
                 if time_elapsed >= 15:  # Check if 15 seconds have passed
-                    #print(f"Removing EphID {ephid_key}. Less than {k} shares received.")
+                    print(f"Removing EphID {ephid_key}. Less than {k} shares received.")
                     del received_shares[ephid_key]
                 else:
                     if len(shares) >= k:
-                        #print(f"EphID {ephid_key} has {len(shares)} shares. Reconstructing EphID.")
+                        print(f"EphID {ephid_key} has {len(shares)} shares. Reconstructing EphID.")
                         verify_and_reconstruct_shares(shares, ephid_key)
-                    #else: 
-                        #print(f"EphID {ephid_key} has {len(shares)} shares.")                          
+                    else: 
+                        print(f"EphID {ephid_key} has {len(shares)} shares.")                          
         except ValueError:
             print("Error: Could not split data")
                 
@@ -142,7 +150,7 @@ def verify_and_reconstruct_shares(shares, original_ephid_hash):
         recv_ephid = recover_secret(shares_list[:k])
         reconstructed_hash = hashlib.sha256(recv_ephid).hexdigest()
         if reconstructed_hash == original_ephid_hash:
-            #print("[TASK 4]: Successfully reconstructed EphID:\n", reconstructed_hash, "\nOriginal hash:\n", original_ephid_hash, "\n")
+            print("[TASK 4]: Successfully reconstructed EphID:\n", reconstructed_hash, "\nOriginal hash:\n", original_ephid_hash, "\n")
             
             recv_public_key = x25519.X25519PublicKey.from_public_bytes(recv_ephid)
             shared_secret = private_key.exchange(recv_public_key)

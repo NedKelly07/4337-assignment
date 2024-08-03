@@ -1,12 +1,16 @@
-
-from bitarray import bitarray
-import mmh3
-
-
+### Code Implemented by:
+# Ben Crabtree - z5257714
+# Justina Nguyen-  z5419348
+# Nick Talbot - z5316975
+###
 # Class for most bloom filter related operations
 # This code was influenced and referenced from the GeeksforGeeks simple implementation
 # https://www.geeksforgeeks.org/bloom-filters-introduction-and-python-implementation/
 # code was change and/or added into to suit assignment implementation
+from bitarray import bitarray
+import mmh3
+
+
 class BloomFilter(object):
 
     def __init__(self, bit_array=None):
