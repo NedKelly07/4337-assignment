@@ -2,6 +2,11 @@
 from bitarray import bitarray
 import mmh3
 
+
+# Class for most bloom filter related operations
+# This code was influenced and referenced from the GeeksforGeeks simple implementation
+# https://www.geeksforgeeks.org/bloom-filters-introduction-and-python-implementation/
+# code was change and/or added into to suit assignment implementation
 class BloomFilter(object):
 
     def __init__(self, bit_array=None):
